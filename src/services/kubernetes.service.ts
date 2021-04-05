@@ -7,7 +7,6 @@ import {stringify} from 'querystring';
 import * as requestPromise from 'request-promise-native';
 import {IMetricsQuery, IMetricsReqParams} from '../interfaces/metrics';
 import {IPodMetrics} from '../interfaces/pods';
-import * as http from 'http';
 import {RpcException} from '@nestjs/microservices';
 import {MessageErrorCode} from '../helpers/error.helpers';
 import {Service} from '../classes/service';

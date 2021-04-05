@@ -3,27 +3,24 @@ import {NamespaceDto} from '../dtos/namespace.dto';
 import {KubernetesService} from './kubernetes.service';
 import {Namespace, NamespaceDocument} from '../entitys/namespace';
 import {User} from '../interfaces/user';
-import {catchError, map, mergeMap} from 'rxjs/operators';
+import {catchError, mergeMap} from 'rxjs/operators';
 import {plainToClass} from 'class-transformer';
 import {StatusNamespaces} from '../classes/status.namespaces';
-import {StatusNameSpacesEnums} from '../enums/status.namespaces.enums';
-import {StepEnum} from '../enums/step.enum';
 import {ConfigService} from '@nestjs/config';
 import {WINSTON_MODULE_PROVIDER} from 'nest-winston';
 import {Logger} from 'winston';
 import {v4 as uuid} from 'uuid';
 import {getMessageError} from '../helpers/error.helpers';
-
 import {ClusterService} from './cluster.service';
 import {IkubeConfig} from '../interfaces/Kube';
 import {IResponse} from '../interfaces/response';
 import {Messages, MessagesError} from '../messages';
 import {MicroFunctionException} from '../errors/micro.function.Exception';
 import {fromPromise} from 'rxjs/internal-compatibility';
-
 import {Model} from "mongoose";
 import {InjectModel} from "@nestjs/mongoose";
 import {FunctionsService} from "./functions.service";
+import { NamespacesSteps , NamespacesStatus } from "@microfunctions/common";
 
 
 @Injectable()
@@ -54,8 +51,8 @@ export class NamespaceService {
     namespace.clusterName = kubeConfig.name;
     namespace.host = { host: namespaceDto.host };
     namespace.status = {
-      step: StepEnum.CREATING,
-      status: StatusNameSpacesEnums.PENDING,
+      step: NamespacesSteps.CREATING,
+      status: NamespacesStatus.PENDING,
     };
     const namespaceModel = new this.namespaceModel(namespace);
     await namespaceModel.save().catch((error) => {
@@ -89,16 +86,16 @@ export class NamespaceService {
       })),
       catchError((error) => {
         this.updateStatus(namespaceModel.id, {
-          status: StatusNameSpacesEnums.FAILED,
-          step: StepEnum.CREATING,
+          status: NamespacesStatus.FAILED,
+          step: NamespacesSteps.CREATING,
           message: getMessageError(error),
         });
         throw error;
       }),
     ).subscribe(() => {
       this.updateStatus(namespaceModel.id, {
-        step: StepEnum.CREATING,
-        status: StatusNameSpacesEnums.SUCCEEDED,
+        step: NamespacesSteps.CREATING,
+        status: NamespacesStatus.SUCCEEDED,
       });
     }, error => (error: any) => {
       this.logger.error('createNamespace error', { user, idNamespace: namespaceDto.name, error });
@@ -159,8 +156,8 @@ export class NamespaceService {
       id: namespace.id,
     };
     this.updateStatus(id, {
-      step: StepEnum.REMOVING,
-      status: StatusNameSpacesEnums.PENDING,
+      step: NamespacesSteps.REMOVING,
+      status: NamespacesStatus.PENDING,
     });
 
     const kubeConfig: IkubeConfig = await this.clusterService.getClusterConfig(user, namespace.idCluster);
@@ -175,8 +172,8 @@ export class NamespaceService {
       catchError((error) => {
         console.log(error)
         this.updateStatus(namespace.id, {
-          status: StatusNameSpacesEnums.FAILED,
-          step: StepEnum.REMOVING,
+          status: NamespacesStatus.FAILED,
+          step: NamespacesSteps.REMOVING,
           message: getMessageError(error),
         });
         throw error;

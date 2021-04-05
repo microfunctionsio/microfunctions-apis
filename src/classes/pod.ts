@@ -1,5 +1,4 @@
 import { IContainerProbe, IPodContainer, IPodContainerStatus, IPodLogsQuery, IPodSpec, IPodStatus } from '../interfaces/pods';
-import { PodStatus } from '../enums/pods.enums';
 import { stringify } from 'querystring';
 import { KubeApiHelper } from '../helpers/KubeApi.helper';
 import { from, Observable } from 'rxjs';
@@ -8,6 +7,7 @@ import { IMetrics, IMetricsResult } from '../interfaces/metrics';
 import moment from 'moment';
 
 import * as requestPromise from 'request-promise-native';
+import {PodStatus} from "@microfunctions/common";
 
 export class Pod extends Kube {
   private spec: IPodSpec;

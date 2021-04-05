@@ -1,6 +1,4 @@
-
 import * as http from 'http';
-import {Cluster} from "../classes/cluster";
 export interface IKubeApiLinkRef {
   apiPrefix?: string;
   apiVersion: string;
@@ -31,7 +29,6 @@ interface RouteParams {
   [key: string]: string | undefined;
 }
 export type ApiRequest = {
-  cluster?: Cluster;
   payload: any;
   raw?: {
     req: http.IncomingMessage;

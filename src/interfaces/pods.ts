@@ -20,14 +20,7 @@ export interface IPodLogsQuery {
   sinceTime?: string; // Date.toISOString()-format
 }
 
-export enum PodStatusEnum {
-  TERMINATED = 'Terminated',
-  FAILED = 'Failed',
-  PENDING = 'Pending',
-  RUNNING = 'Running',
-  SUCCEEDED = 'Succeeded',
-  EVICTED = 'Evicted',
-}
+
 export interface IPodsStatus {
   name: string;
   status:  string;

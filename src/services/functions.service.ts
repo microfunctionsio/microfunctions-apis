@@ -12,8 +12,6 @@ import {plainToClass} from 'class-transformer';
 import {NamespaceService} from './namespace.service';
 import {Namespace} from '../entitys/namespace';
 
-import {StepEnum} from '../enums/step.enum';
-import {StatusFunctionEnum} from '../enums/status.function.enum';
 import {forwardRef, HttpStatus, Inject} from '@nestjs/common';
 import {Pod} from '../classes/pod';
 import {ServerlessServices} from './serverless.services';
@@ -28,14 +26,12 @@ import {IResponse} from '../interfaces/response';
 import {Messages, MessagesError} from '../messages';
 import {MicroFunctionException} from '../errors/micro.function.Exception';
 import {Serverless} from '../interfaces/serverless';
-import {fromPromise} from 'rxjs/internal-compatibility';
 import {IPodMetrics} from '../interfaces/pods';
 import {FunctionsLogs} from '../interfaces/functions.logs';
 import {Model} from "mongoose";
 import {InjectModel} from "@nestjs/mongoose";
-import {PodStatus} from "../enums/pods.enums";
 import {Autoscaler} from "../classes/autoscaler";
-
+import {FunctionsStatus, FunctionsSteps,PodStatus} from '@microfunctions/common';
 export class FunctionsService {
     constructor(
         @InjectModel(Functions.name) private functionModel: Model<FunctionsDocument>,
@@ -75,8 +71,8 @@ export class FunctionsService {
         functions.replicas = functionDto.replicas;
         functions.autoscaler = new Autoscaler(functionDto.autoscaler);
         functions.status = {
-            step: StepEnum.CREATING,
-            status: StatusFunctionEnum.PENDING,
+            step: FunctionsSteps.CREATING,
+            status: FunctionsStatus.PENDING,
             message: '',
         };
 
@@ -123,16 +119,16 @@ export class FunctionsService {
             ),
             catchError((error) => {
                 this.updateStatus(functions.id, {
-                    step: StepEnum.DEPLOYED,
-                    status: StatusFunctionEnum.FAILED,
+                    step: FunctionsSteps.DEPLOYED,
+                    status: FunctionsStatus.FAILED,
                     message: getMessageError(error),
                 });
                 throw error;
             }),
         ).subscribe(() => {
             this.updateStatus(functionsModel.id, {
-                step: StepEnum.DEPLOYED,
-                status: StatusFunctionEnum.SUCCEEDED,
+                step: FunctionsSteps.DEPLOYED,
+                status: FunctionsStatus.SUCCEEDED,
             });
         }, error => (error: any) => {
             this.logger.error('createFunctions error', {user, id: functions.id, namespace: namespace.name, error});
@@ -158,13 +154,13 @@ export class FunctionsService {
         functions.replicas = functions.replicas;
         functions.autoscaler = new Autoscaler(functionDto.autoscaler);
         functions.status = {
-            step: StepEnum.COMPILE,
-            status: StatusFunctionEnum.PENDING,
+            step: FunctionsSteps.COMPILE,
+            status: FunctionsStatus.PENDING,
             message: '',
         };
         functions.status = {
-            step: StepEnum.DEPLOYED,
-            status: StatusFunctionEnum.PENDING,
+            step: FunctionsSteps.DEPLOYED,
+            status: FunctionsStatus.PENDING,
         };
         await (functions as any).save().catch((error) => {
             const response: IResponse = {
@@ -206,16 +202,16 @@ export class FunctionsService {
             ),
             catchError((error) => {
                 this.updateStatus(functions.id, {
-                    step: StepEnum.DEPLOYED,
-                    status: StatusFunctionEnum.FAILED,
+                    step: FunctionsSteps.DEPLOYED,
+                    status: FunctionsStatus.FAILED,
                     message: getMessageError(error),
                 });
                 throw error;
             }),
         ).subscribe(() => {
             this.updateStatus(functions.id, {
-                step: StepEnum.DEPLOYED,
-                status: StatusFunctionEnum.SUCCEEDED,
+                step: FunctionsSteps.DEPLOYED,
+                status: FunctionsStatus.SUCCEEDED,
             });
         }, error => (error: any) => {
             this.logger.error('UpdateFunctions error', {user, id: functions.id, namespace: namespace.name, error});
@@ -272,9 +268,9 @@ export class FunctionsService {
 
     public deleteFunctionsByIdNameSpace(user: User, idNamespace: string) {
 
-        return fromPromise(this.updateFunctionsByNameSpaceStatus(idNamespace, {
-            step: StepEnum.REMOVING,
-            status: StatusFunctionEnum.PENDING,
+        return from(this.updateFunctionsByNameSpaceStatus(idNamespace, {
+            step: FunctionsSteps.REMOVING,
+            status: FunctionsStatus.PENDING,
         })).pipe(
             tap(() => {
                 this.functionModel.deleteMany({idNamespace}).catch((deleteResulte: any) => {
@@ -304,16 +300,16 @@ export class FunctionsService {
             mergeMap(() => this.updateFunctionLive(user, functions, replicas)),
             catchError((error) => {
                 this.updateStatus(functions.id, {
-                    step: StepEnum.DEPLOYED,
-                    status: StatusFunctionEnum.FAILED,
+                    step: FunctionsSteps.DEPLOYED,
+                    status: FunctionsStatus.FAILED,
                     message: getMessageError(error),
                 });
                 throw error;
             }),
         ).subscribe(() => {
             this.updateStatus(functions.id, {
-                step: StepEnum.DEPLOYED,
-                status: StatusFunctionEnum.SUCCEEDED,
+                step: FunctionsSteps.DEPLOYED,
+                status: FunctionsStatus.SUCCEEDED,
             });
         }, error => (error: any) => {
             this.logger.error('UpdateFunctions error', {user, id: functions.id, namespace: namespace.name, error});
@@ -344,16 +340,16 @@ export class FunctionsService {
         }).pipe(
             catchError((error) => {
                 this.updateStatus(functions.id, {
-                    step: StepEnum.STOP,
-                    status: StatusFunctionEnum.FAILED,
+                    step: FunctionsSteps.STOP,
+                    status: FunctionsStatus.FAILED,
                     message: getMessageError(error),
                 });
                 throw error;
             }),
         ).subscribe(() => {
             this.updateStatus(functions.id, {
-                step: StepEnum.STOP,
-                status: StatusFunctionEnum.STOP,
+                step: FunctionsSteps.STOP,
+                status: FunctionsStatus.STOP,
             });
         }, error => (error: any) => {
             this.logger.error('stopFunction error', {user, id: functions.id, namespace: namespace.name, error});
@@ -384,16 +380,16 @@ export class FunctionsService {
         }).pipe(
             catchError((error) => {
                 this.updateStatus(functions.id, {
-                    step: StepEnum.DEPLOYED,
-                    status: StatusFunctionEnum.FAILED,
+                    step: FunctionsSteps.DEPLOYED,
+                    status: FunctionsStatus.FAILED,
                     message: getMessageError(error),
                 });
                 throw error;
             }),
         ).subscribe(() => {
             this.updateStatus(functions.id, {
-                step: StepEnum.DEPLOYED,
-                status: StatusFunctionEnum.SUCCEEDED,
+                step: FunctionsSteps.DEPLOYED,
+                status: FunctionsStatus.SUCCEEDED,
             });
         }, error => (error: any) => {
             this.logger.error('createFunctions error', {user, id: functions.id, namespace: namespace.name, error});
@@ -416,8 +412,8 @@ export class FunctionsService {
             id: functions.id,
         };
         this.updateStatus(idFunctions, {
-            step: StepEnum.REMOVING,
-            status: StatusFunctionEnum.PENDING,
+            step: FunctionsSteps.REMOVING,
+            status: FunctionsStatus.PENDING,
         });
 
         from(this.kubernetesService.deletekubFunctions({
@@ -425,8 +421,8 @@ export class FunctionsService {
             functions: functions.name,
             namespace: namespace.idNamespace,
         })).pipe(
-            mergeMap(() => fromPromise(this.functionModel.deleteOne({_id: functions.id}))),
-            mergeMap(() => fromPromise(
+            mergeMap(() => from(this.functionModel.deleteOne({_id: functions.id}))),
+            mergeMap(() => from(
                 this.sourceCodeModel.deleteOne({
                     idFunctions: functions.id,
                 }),
@@ -434,8 +430,8 @@ export class FunctionsService {
             catchError((error) => {
 
                 this.updateStatus(functions.id, {
-                    status: StatusFunctionEnum.FAILED,
-                    step: StepEnum.REMOVING,
+                    status: FunctionsStatus.FAILED,
+                    step: FunctionsSteps.REMOVING,
                     message: getMessageError(error),
                 });
                 throw error;

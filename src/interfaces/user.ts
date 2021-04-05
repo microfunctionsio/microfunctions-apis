@@ -1,4 +1,4 @@
-import { TypeClient } from '../enums/typeClient';
+import {ClientType} from "@microfunctions/common";
 
 export interface User {
   email: string;
@@ -7,5 +7,5 @@ export interface User {
   profileId?: string;
   profiles?: any[];
   namespaces?: any[];
-  typeClient?: TypeClient;
+  typeClient?: ClientType;
 }
