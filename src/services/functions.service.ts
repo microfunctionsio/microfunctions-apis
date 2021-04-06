@@ -1,37 +1,40 @@
 import {KubernetesService} from './kubernetes.service';
 import {Functions, FunctionsDocument} from '../entitys/function';
-import {User} from '../interfaces/user';
 import {FunctionsDto} from '../dtos/functions.dto';
 import {from, merge, of} from 'rxjs';
-
 import {SourceCode, SourceCodeDocument} from '../entitys/sourceCode';
 import {catchErrorMongo, getMessageError} from '../helpers/error.helpers';
 import {catchError, filter, map, mergeMap, tap, toArray} from 'rxjs/operators';
 import {plainToClass} from 'class-transformer';
-
 import {NamespaceService} from './namespace.service';
 import {Namespace} from '../entitys/namespace';
-
 import {forwardRef, HttpStatus, Inject} from '@nestjs/common';
 import {Pod} from '../classes/pod';
 import {ServerlessServices} from './serverless.services';
 import {ConfigService} from '@nestjs/config';
 import {WINSTON_MODULE_PROVIDER} from 'nest-winston';
 import {Logger} from 'winston';
-
 import {StatusFunctions} from '../classes/status.functions';
 import {ClusterService} from './cluster.service';
-import {IkubeConfig} from '../interfaces/Kube';
-import {IResponse} from '../interfaces/response';
+import {
+    FunctionsStatus,
+    FunctionsSteps,
+    IFunctionsLogs,
+    IkubeConfig,
+    IPodMetrics,
+    IResponse,
+    IServerless,
+    IUser,
+    PodStatus
+} from '@microfunctions/common';
+
 import {Messages, MessagesError} from '../messages';
 import {MicroFunctionException} from '../errors/micro.function.Exception';
-import {Serverless} from '../interfaces/serverless';
-import {IPodMetrics} from '../interfaces/pods';
-import {FunctionsLogs} from '../interfaces/functions.logs';
+
 import {Model} from "mongoose";
 import {InjectModel} from "@nestjs/mongoose";
 import {Autoscaler} from "../classes/autoscaler";
-import {FunctionsStatus, FunctionsSteps,PodStatus} from '@microfunctions/common';
+
 export class FunctionsService {
     constructor(
         @InjectModel(Functions.name) private functionModel: Model<FunctionsDocument>,
@@ -48,7 +51,7 @@ export class FunctionsService {
         this.logger = logger.child({context: FunctionsService.name});
     }
 
-    public async createFunction(user: User, functionDto: FunctionsDto) {
+    public async createFunction(user: IUser, functionDto: FunctionsDto) {
         const {idNamespace} = functionDto;
         this.logger.debug('createFunction', {user, idNamespace});
         const namespaceResponse: IResponse = await this.namespaceService
@@ -89,11 +92,11 @@ export class FunctionsService {
             message: Messages.createFunctionsProgress,
             id: functionsModel.id,
         };
-        const serverless: Serverless = Object.assign(functionDto, {
+        const serverless: IServerless = Object.assign(functionDto, {
             apiKey: namespace.apiKey,
             host: namespace.host.host,
             namespace: namespace.idNamespace,
-        }) as Serverless;
+        }) as IServerless;
 
         this.createUpdateSourceCode({
             environments: functionDto.environments,
@@ -137,7 +140,7 @@ export class FunctionsService {
         return response;
     }
 
-    public async updateFunction(user: User, functionDto: FunctionsDto) {
+    public async updateFunction(user: IUser, functionDto: FunctionsDto) {
         const {idFunctions, idNamespace} = functionDto;
         this.logger.debug('updateFunction  ', {user, idFunctions, idNamespace});
         const {
@@ -174,7 +177,7 @@ export class FunctionsService {
             message: Messages.updateFunctionsProgress,
             id: functions.id,
         };
-        const serverless: Serverless = Object.assign(functionDto, {
+        const serverless: IServerless = Object.assign(functionDto, {
             apiKey: namespace.apiKey,
             host: namespace.host.host,
             namespace: namespace.idNamespace,
@@ -220,7 +223,7 @@ export class FunctionsService {
         return response;
     }
 
-    public async getFunction(user: User, functionsDto: FunctionsDto) {
+    public async getFunction(user: IUser, functionsDto: FunctionsDto) {
         const {idFunctions, idNamespace} = functionsDto;
         this.logger.debug('getFunction', {user, idFunctions, idNamespace});
         const functionsDb = await this.functionModel.findOne({_id: idFunctions, idNamespace});
@@ -247,7 +250,7 @@ export class FunctionsService {
         return response;
     }
 
-    public getFunctions(user: User, functions: FunctionsDto) {
+    public getFunctions(user: IUser, functions: FunctionsDto) {
         const {idNamespace} = functions;
         this.logger.debug('getFunctions', {user, idNamespace});
         return from(
@@ -266,7 +269,7 @@ export class FunctionsService {
         );
     }
 
-    public deleteFunctionsByIdNameSpace(user: User, idNamespace: string) {
+    public deleteFunctionsByIdNameSpace(user: IUser, idNamespace: string) {
 
         return from(this.updateFunctionsByNameSpaceStatus(idNamespace, {
             step: FunctionsSteps.REMOVING,
@@ -281,7 +284,7 @@ export class FunctionsService {
         );
     }
 
-    public async scaleFunction(user: User, functionDto: FunctionsDto) {
+    public async scaleFunction(user: IUser, functionDto: FunctionsDto) {
         const {replicas, idNamespace, idFunctions} = functionDto;
         this.logger.debug('scaleFunction  ', {user, replicas, idNamespace, idFunctions});
         const {
@@ -318,7 +321,7 @@ export class FunctionsService {
 
     }
 
-    public async stopFunction(user: User, functionsDto: FunctionsDto) {
+    public async stopFunction(user: IUser, functionsDto: FunctionsDto) {
         const {replicas, idNamespace, idFunctions} = functionsDto;
         this.logger.debug('stopFunction  ', {user, replicas, idNamespace, idFunctions});
         const {
@@ -358,7 +361,7 @@ export class FunctionsService {
         return response;
     }
 
-    public async startFunction(user: User, functionsDto: FunctionsDto) {
+    public async startFunction(user: IUser, functionsDto: FunctionsDto) {
         const {replicas, idNamespace, idFunctions} = functionsDto;
         this.logger.debug('startFunction  ', {user, replicas, idNamespace, idFunctions});
         const {
@@ -398,7 +401,7 @@ export class FunctionsService {
         return response;
     }
 
-    public async deleteFunction(user: User, functionsDto: FunctionsDto) {
+    public async deleteFunction(user: IUser, functionsDto: FunctionsDto) {
         const {idFunctions, idNamespace} = functionsDto;
         this.logger.debug('deleteFunction  ', {user, idNamespace, idFunctions});
         const {
@@ -443,7 +446,7 @@ export class FunctionsService {
         return response;
     }
 
-    public async getFunctionLogs(user: User, functionsDto: FunctionsDto) {
+    public async getFunctionLogs(user: IUser, functionsDto: FunctionsDto) {
         const {logstimestamps} = functionsDto;
         const {idFunctions, idNamespace} = functionsDto;
         this.logger.debug('getFunctionLogs  ', {user, idNamespace, idFunctions});
@@ -479,7 +482,7 @@ export class FunctionsService {
                 );
             }),
             toArray(),
-            map((functionsLogs: FunctionsLogs[]) => {
+            map((functionsLogs: IFunctionsLogs[]) => {
                 return {
                     status: HttpStatus.OK,
                     data: functionsLogs,
@@ -488,7 +491,7 @@ export class FunctionsService {
         );
     }
 
-    public async getFunctionMetrics(user: User, functionsDto: FunctionsDto) {
+    public async getFunctionMetrics(user: IUser, functionsDto: FunctionsDto) {
         const {range} = functionsDto;
         const {idFunctions, idNamespace} = functionsDto;
         this.logger.debug('getFunctionMetrics  ', {user, idNamespace, idFunctions});
@@ -516,7 +519,7 @@ export class FunctionsService {
         );
     }
 
-    public async getFunctionStatus(user: User, functionsDto: FunctionsDto) {
+    public async getFunctionStatus(user: IUser, functionsDto: FunctionsDto) {
         const {idFunctions, idNamespace} = functionsDto;
         this.logger.debug('getFunctionStatus  ', {user, idNamespace, idFunctions});
         const {
@@ -563,7 +566,7 @@ export class FunctionsService {
 
     }
 
-    private async getNameSFunctionsAndKubconfig(user: User, idNamespace: string, idFunctions: string) {
+    private async getNameSFunctionsAndKubconfig(user: IUser, idNamespace: string, idFunctions: string) {
         const namespaceResponse: IResponse = await this.namespaceService
             .getNamespace(user, idNamespace);
         const namespace: Namespace = namespaceResponse.data;
@@ -578,7 +581,7 @@ export class FunctionsService {
         return {namespace, kubeConfig, functions};
     }
 
-    private updateFunctionLive(user: User, functions: Functions, replicas: number) {
+    private updateFunctionLive(user: IUser, functions: Functions, replicas: number) {
 
         const source$ = of(functions);
         return source$.pipe(

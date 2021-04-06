@@ -1,5 +1,6 @@
-import { IKubeObjectMetadata } from '../interfaces/Kube';
+
 import moment = require('moment');
+import {IKubeObjectMetadata} from "@microfunctions/common";
 
 export class Kube {
   apiVersion: string;

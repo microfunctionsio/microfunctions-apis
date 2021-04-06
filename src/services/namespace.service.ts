@@ -2,7 +2,6 @@ import {forwardRef, HttpStatus, Inject, Injectable} from '@nestjs/common';
 import {NamespaceDto} from '../dtos/namespace.dto';
 import {KubernetesService} from './kubernetes.service';
 import {Namespace, NamespaceDocument} from '../entitys/namespace';
-import {User} from '../interfaces/user';
 import {catchError, mergeMap} from 'rxjs/operators';
 import {plainToClass} from 'class-transformer';
 import {StatusNamespaces} from '../classes/status.namespaces';
@@ -12,15 +11,13 @@ import {Logger} from 'winston';
 import {v4 as uuid} from 'uuid';
 import {getMessageError} from '../helpers/error.helpers';
 import {ClusterService} from './cluster.service';
-import {IkubeConfig} from '../interfaces/Kube';
-import {IResponse} from '../interfaces/response';
 import {Messages, MessagesError} from '../messages';
 import {MicroFunctionException} from '../errors/micro.function.Exception';
 import {fromPromise} from 'rxjs/internal-compatibility';
 import {Model} from "mongoose";
 import {InjectModel} from "@nestjs/mongoose";
 import {FunctionsService} from "./functions.service";
-import { NamespacesSteps , NamespacesStatus } from "@microfunctions/common";
+import {IkubeConfig, IResponse, IUser, NamespacesStatus, NamespacesSteps} from "@microfunctions/common";
 
 
 @Injectable()
@@ -36,7 +33,7 @@ export class NamespaceService {
     this.logger = logger.child({ context: NamespaceService.name });
   }
 
-  public async createNamespace(user: User, namespaceDto: NamespaceDto) {
+  public async createNamespace(user: IUser, namespaceDto: NamespaceDto) {
 
 
     this.logger.debug('createNamespace', { user, namespaceDto });
@@ -103,7 +100,7 @@ export class NamespaceService {
     return response;
   }
 
-  public getNamespaces(user: User): Promise<IResponse> {
+  public getNamespaces(user: IUser): Promise<IResponse> {
     this.logger.debug('getNamespaces', { user });
     return this.namespaceModel.find({ idUser: user.id }).then(
       ((namespace: Namespace[]) => {
@@ -118,7 +115,7 @@ export class NamespaceService {
     );
   }
 
-  public getNamespace(user: User, id: string) {
+  public getNamespace(user: IUser, id: string) {
     this.logger.debug('getNamespace', { user, namespaces: id });
     return this.namespaceModel.findById(id).then(
       ((namespace: any) => {
@@ -140,7 +137,7 @@ export class NamespaceService {
     );
   }
 
-  public async deleteNamespace(user: User, id: string) {
+  public async deleteNamespace(user: IUser, id: string) {
     this.logger.debug('deleteNamespace', { user, namespaces: id });
 
     const namespace: Namespace = await this.namespaceModel.findById(id).catch((error) => {

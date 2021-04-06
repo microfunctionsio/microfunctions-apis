@@ -1,13 +1,21 @@
-import { IContainerProbe, IPodContainer, IPodContainerStatus, IPodLogsQuery, IPodSpec, IPodStatus } from '../interfaces/pods';
-import { stringify } from 'querystring';
-import { KubeApiHelper } from '../helpers/KubeApi.helper';
-import { from, Observable } from 'rxjs';
-import { Kube } from './Kube';
-import { IMetrics, IMetricsResult } from '../interfaces/metrics';
+import {
+  IContainerProbe,
+  IMetrics,
+  IMetricsResult,
+  IPodContainer,
+  IPodContainerStatus,
+  IPodLogsQuery,
+  IPodSpec,
+  IPodStatus,
+  PodStatus
+} from '@microfunctions/common';
+import {stringify} from 'querystring';
+import {KubeApiHelper} from '../helpers/KubeApi.helper';
+import {from, Observable} from 'rxjs';
+import {Kube} from './Kube';
 import moment from 'moment';
 
 import * as requestPromise from 'request-promise-native';
-import {PodStatus} from "@microfunctions/common";
 
 export class Pod extends Kube {
   private spec: IPodSpec;

@@ -1,9 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { User } from '../interfaces/user';
 
 import {map} from "rxjs/operators";
-import {IResponse} from "../interfaces/response";
+import {IResponse, IUser} from '@microfunctions/common';
 
 @Injectable()
 export class ClusterService {
@@ -11,7 +10,7 @@ export class ClusterService {
   constructor( @Inject('clusterProxy') private readonly clusterProxy: ClientProxy) {
 
   }
-  getClusterConfig(user: User, idCluster: string) {
+  getClusterConfig(user: IUser, idCluster: string) {
 
     const pattern = { cmd: 'config-cluster' };
     return this.send(user, pattern, {idCluster}).pipe(
@@ -21,7 +20,7 @@ export class ClusterService {
 
 
 
-  private send(user: any, pattern: any, payload: any) {
+  private send(user: IUser, pattern: any, payload: any) {
     return this.clusterProxy
       .send(pattern, Object.assign({}, payload, { user }));
   }

@@ -1,4 +1,4 @@
-import { IKubeApiLinkRef } from '../interfaces/Kube';
+import { IKubeApiLinkRef } from '@microfunctions/common';
 const k8s = require('@kubernetes/client-node');
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
