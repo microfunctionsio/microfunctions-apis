@@ -1,8 +1,8 @@
-import { StatusNameSpacesEnums } from '../enums/status.namespaces.enums';
-import { StepEnum } from '../enums/step.enum';
+
+import {NamespacesStatus, NamespacesSteps} from "@microfunctions/common";
 
 export class StatusNamespaces {
-  step?: StepEnum;
-  status?: StatusNameSpacesEnums;
+  step?: NamespacesSteps;
+  status?: NamespacesStatus;
   message?: string;
 }

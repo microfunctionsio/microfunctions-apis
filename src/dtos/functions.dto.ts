@@ -1,6 +1,6 @@
-import { RuntimeEnums } from '../enums/runtime.enums';
 import { Environments } from '../classes/environments';
-import {TriggerEnums} from "../enums/trigger.enums";
+import {RuntimesType} from '@microfunctions/common';
+import {TriggersType} from '@microfunctions/common';
 
 export class FunctionsDto {
   name: string;
@@ -10,8 +10,8 @@ export class FunctionsDto {
   idUser: string;
   idNamespace: string;
   executedName: string;
-  runtime: RuntimeEnums;
-  trigger: TriggerEnums;
+  runtime: RuntimesType;
+  trigger: TriggersType;
   crontab: string;
   sourceCode: any;
   namespace: string;

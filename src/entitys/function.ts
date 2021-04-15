@@ -1,11 +1,9 @@
-
 import { Expose } from 'class-transformer';
-import { RuntimeEnums } from '../enums/runtime.enums';
 import { StatusFunctions } from '../classes/status.functions';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import {TriggerEnums} from "../enums/trigger.enums";
 import {Autoscaler} from "../classes/autoscaler";
+import {RuntimesType, TriggersType} from "@microfunctions/common";
 
 export type FunctionsDocument = Functions & Document;
 @Schema()
@@ -37,11 +35,11 @@ export class Functions {
   @Prop({ required: true })
   url: string;
   @Expose()
-  @Prop({ enum: RuntimeEnums, required: true })
-  runtime: RuntimeEnums;
+  @Prop({ enum: RuntimesType, required: true })
+  runtime: RuntimesType;
   @Expose()
-  @Prop({ enum: TriggerEnums, required: true })
-  trigger: TriggerEnums;
+  @Prop({ enum: TriggersType, required: true })
+  trigger: TriggersType;
   @Expose()
   @Prop()
   crontab: string;

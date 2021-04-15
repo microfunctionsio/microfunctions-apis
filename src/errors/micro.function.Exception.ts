@@ -1,4 +1,4 @@
-import { IResponse } from '../interfaces/response';
+import { IResponse } from '@microfunctions/common';
 import {RpcException} from "@nestjs/microservices";
 export class MicroFunctionException extends RpcException {
   status: number;
@@ -14,3 +14,4 @@ export class MicroFunctionException extends RpcException {
     return this.message;
   }
 }
+

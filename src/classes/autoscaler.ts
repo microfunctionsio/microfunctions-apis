@@ -1,4 +1,3 @@
-import {ResourceEnums} from "../enums/resource.enums";
 
 export class Autoscaler {
     enabled: boolean;

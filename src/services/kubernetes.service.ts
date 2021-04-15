@@ -5,26 +5,30 @@ import {map, mergeMap, retryWhen} from 'rxjs/operators';
 import {Pod} from '../classes/pod';
 import {stringify} from 'querystring';
 import * as requestPromise from 'request-promise-native';
-import {IMetricsQuery, IMetricsReqParams} from '../interfaces/metrics';
-import {IPodMetrics} from '../interfaces/pods';
-import * as http from 'http';
+import {
+    ApiRequest,
+    IFunctionsLogs,
+    IKubParam,
+    IMetricsQuery,
+    IMetricsReqParams,
+    IPodMetrics
+} from '@microfunctions/common';
+
 import {RpcException} from '@nestjs/microservices';
 import {MessageErrorCode} from '../helpers/error.helpers';
 import {Service} from '../classes/service';
 import {ExtensionsV1beta1Ingress} from '@kubernetes/client-node/dist/gen/model/extensionsV1beta1Ingress';
 import {V1Service} from '@kubernetes/client-node/dist/gen/model/v1Service';
 import {fromPromise} from 'rxjs/internal-compatibility';
-import {ApiRequest} from '../interfaces/Kube';
-import {KubParam} from '../interfaces/kubParam';
 import {MessagesError} from '../messages';
-import {FunctionsLogs} from '../interfaces/functions.logs';
 import {Autoscaler} from "../classes/autoscaler";
 import moment = require('moment');
+
 
 @Injectable()
 export class KubernetesService {
 
-    public createKubNamespace(kubParam: KubParam) {
+    public createKubNamespace(kubParam: IKubParam) {
         const namespace: any = {
             metadata: {
                 name: kubParam.namespace,
@@ -35,7 +39,7 @@ export class KubernetesService {
         return fromPromise(k8sCoreApi.createNamespace(namespace));
     }
 
-    public getkubPodbyFunction(kubParam: KubParam,
+    public getkubPodbyFunction(kubParam: IKubParam,
     ): Observable<Pod[]> {
         const k8sCoreApi = this.getCoreApi(kubParam.kubeConfig);
         return from(k8sCoreApi.listNamespacedPod(kubParam.namespace)).pipe(
@@ -52,7 +56,7 @@ export class KubernetesService {
         );
     }
 
-    public scaleKubDeployments(kubParam: KubParam,
+    public scaleKubDeployments(kubParam: IKubParam,
     ): Observable<any> {
         const k8sAppsApi = this.getAppsApi(kubParam.kubeConfig);
 
@@ -83,7 +87,7 @@ export class KubernetesService {
         );
     }
 
-    public enabledAutoscale(kubParam: KubParam, autoscaler: Autoscaler) {
+    public enabledAutoscale(kubParam: IKubParam, autoscaler: Autoscaler) {
         const scaleApi = this.getScaleApi(kubParam.kubeConfig);
         const k8sAppsApi = this.getAppsApi(kubParam.kubeConfig);
         return from(
@@ -138,7 +142,7 @@ export class KubernetesService {
         );
     }
 
-    public deletekubFunctions(kubParam: KubParam,
+    public deletekubFunctions(kubParam: IKubParam,
     ) {
         const opts = this.getRequestOpts(kubParam.kubeConfig);
         const path = `${
@@ -147,7 +151,7 @@ export class KubernetesService {
         return requestPromise.delete(path, opts.opts);
     }
 
-    public createKongApiKey(kubParam: KubParam): Observable<any> {
+    public createKongApiKey(kubParam: IKubParam): Observable<any> {
 
         const Opts = this.getRequestOpts(kubParam.kubeConfig);
         const path = `${
@@ -170,12 +174,12 @@ export class KubernetesService {
         }, Opts.opts)));
     }
 
-    public deleteKubNamespace(kubParam: KubParam) {
+    public deleteKubNamespace(kubParam: IKubParam) {
         const k8sCoreApi = this.getCoreApi(kubParam.kubeConfig);
         return fromPromise(k8sCoreApi.deleteNamespace(kubParam.namespace));
     }
 
-    public getLoadBalancerIp(kubParam: KubParam): Observable<any> {
+    public getLoadBalancerIp(kubParam: IKubParam): Observable<any> {
 
         const k8sCoreApi = this.getCoreApi(kubParam.kubeConfig);
         return from(k8sCoreApi.listNamespacedService('microfunctions')).pipe(
@@ -196,7 +200,7 @@ export class KubernetesService {
 
     }
 
-    public createIngressMetrics(kubParam: KubParam) {
+    public createIngressMetrics(kubParam: IKubParam) {
         const k8sApi: k8s.ExtensionsV1beta1Api = this.getNetworkingApi(kubParam.kubeConfig);
         const k8sCoreApi = this.getCoreApi(kubParam.kubeConfig);
         const ingress: ExtensionsV1beta1Ingress = {
@@ -253,7 +257,7 @@ export class KubernetesService {
                        logsTimestamp?: string,
                        container: string = undefined,
                        showsMetrics = false,
-    ): Observable<FunctionsLogs> {
+    ): Observable<IFunctionsLogs> {
         let lastLogDate = new Date(0);
 
         if (

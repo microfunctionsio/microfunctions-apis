@@ -1,9 +1,10 @@
-import { StepEnum } from '../enums/step.enum';
-import { StatusFunctionEnum } from '../enums/status.function.enum';
+
+import {FunctionsSteps,FunctionsStatus} from "@microfunctions/common";
+
 
 export class StatusFunctions {
-  step?: StepEnum;
-  status?: StatusFunctionEnum;
+  step: FunctionsSteps;
+  status?: FunctionsStatus;
   message?: string;
 
 }
