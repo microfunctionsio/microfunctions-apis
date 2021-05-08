@@ -19,7 +19,8 @@ async function bootstrap() {
       },
     },
   });
-  if(process.env.NODE_ENV !== 'local'){
+  if(process.env.NODE_ENV !== 'local')
+  {
     await microFunctionApiModule.listen(4000);
   }
 

@@ -508,7 +508,8 @@ export class FunctionsService {
 
         }).pipe(
             mergeMap((pods: Pod[]) => {
-                return this.kubernetesService.getPodsMetrics(namespace.host.host, namespace.apiKey, pods, namespace.idNamespace, range);
+
+                return this.kubernetesService.getPodsMetrics(namespace.host.host, namespace.apiKey, pods, namespace.idNamespace, range,functions.name);
             }),
             map((iPodMetrics: IPodMetrics) => {
                 return {

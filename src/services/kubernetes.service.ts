@@ -99,8 +99,8 @@ export class KubernetesService {
                 }),
             ),
             mergeMap((response: any) => {
-                const  minReplicas:number= parseInt(autoscaler.minReplicas.toString(), 10);
-                const  maxReplicas:number= parseInt(autoscaler.maxReplicas.toString(), 10);
+                const minReplicas: number = parseInt(autoscaler.minReplicas.toString(), 10);
+                const maxReplicas: number = parseInt(autoscaler.maxReplicas.toString(), 10);
                 const autoscaleBody = {
                     kind: 'HorizontalPodAutoscaler',
                     metadata: {
@@ -113,13 +113,19 @@ export class KubernetesService {
                         metrics: [{
                             resource: {
                                 name: 'cpu',
-                                 target: {type: 'Utilization', averageUtilization: parseInt(autoscaler.averageCpu.toString(), 10)},
+                                target: {
+                                    type: 'Utilization',
+                                    averageUtilization: parseInt(autoscaler.averageCpu.toString(), 10)
+                                },
                             },
                             type: 'Resource'
                         }, {
                             resource: {
                                 name: 'memory',
-                                target: {type: 'Utilization', averageUtilization: parseInt(autoscaler.averageMemory.toString(), 10)},
+                                target: {
+                                    type: 'Utilization',
+                                    averageUtilization: parseInt(autoscaler.averageMemory.toString(), 10)
+                                },
 
                             },
                             type: 'Resource'
@@ -307,8 +313,15 @@ export class KubernetesService {
         pods: Pod[],
         namespace: string,
         rangePrame: number,
+        functions: string,
         selector = 'pod, namespace',
     ): Observable<IPodMetrics> {
+        //const rateAccuracy = "1m";
+       /* const bytesSent = (route: string, statuses: string) =>
+            `sum(rate(kong_http_status{route="${route}" ,code=~"${statuses}"}[${rateAccuracy}])) by (route)`;*/
+        const countSent = (route: string, statuses: string) =>
+            `sum(kong_http_status{code=~"${statuses}",route="${route}"}) by (route)`;
+
         const podSelector = pods.map(pod => pod.name).join('|');
         const cpuUsage = `sum(rate(container_cpu_usage_seconds_total{container!="POD",container!="",pod=~"${podSelector}",namespace="${namespace}"}[2m])) by (${selector})`;
         const cpuRequests = `sum(kube_pod_container_resource_requests{pod=~"${podSelector}",resource="cpu",namespace="${namespace}"}) by (${selector})`;
@@ -316,13 +329,14 @@ export class KubernetesService {
         const memoryUsage = `sum(container_memory_working_set_bytes{container!="POD",container!="",pod=~"${podSelector}",namespace="${namespace}"}) by (${selector})`;
         const memoryRequests = `sum(kube_pod_container_resource_requests{app_kubernetes_io_name!="kube-state-metrics",pod=~"${podSelector}",container!="POD",container!="",resource="memory",namespace="${namespace}"}) by (${selector})`;
         const memoryLimits = `sum(kube_pod_container_resource_limits{app_kubernetes_io_name!="kube-state-metrics",pod=~"${podSelector}",container!="POD",container!="",resource="memory",namespace="${namespace}"}) by (${selector})`;
-        const fsUsage = `sum(container_fs_usage_bytes{container!="POD",container!="",pod=~"${podSelector}",namespace="${namespace}"}) by (${selector})`;
-        const networkReceive = `sum(rate(container_network_receive_bytes_total{pod=~"${podSelector}",namespace="${namespace}"}[2m])) by (${selector})`;
-        const networkTransit = `sum(rate(container_network_transmit_bytes_total{pod=~"${podSelector}",namespace="${namespace}"}[2m])) by (${selector})`;
+       // const bytesSentSuccess = bytesSent(`${namespace}.${functions}.00`, "2[0-9]{2}");
+       // const bytesSentFailure = bytesSent(`${namespace}.${functions}.00`, "5[0-9]{2}");
+        const countSentSuccess = countSent(`${namespace}.${functions}.00`, "2[0-9]{2}");
+        const countSentFailure = countSent(`${namespace}.${functions}.00`, "5[0-9]{2}");
+        const requestTime= `histogram_quantile(0.99, sum(rate(kong_latency_bucket{type="request",route=~"${namespace}.${functions}.00"}[15m])) by (route,le))`;
         const reqParams: IMetricsReqParams = {};
         const {range = rangePrame || 1, step = 60} = reqParams;
         let {start, end} = reqParams;
-
         if (!start && !end) {
             const timeNow = Date.now() / 1000;
             const now = moment
@@ -339,9 +353,9 @@ export class KubernetesService {
             memoryUsage,
             memoryRequests,
             memoryLimits,
-            fsUsage,
-            networkReceive,
-            networkTransit,
+            requestTime,
+            countSentSuccess,
+            countSentFailure
         };
         const path = `http://${baseUrl}/prometheus/api/v1/query_range`;
 
@@ -390,7 +404,6 @@ export class KubernetesService {
         const loadMetrics = (orgQuery: string): Promise<any> => {
             const query = orgQuery.trim();
             const attempt = (attempts[query] = (attempts[query] || 0) + 1);
-
             return requestPromise
                 .get(metricsUrl, {
                     resolveWithFullResponse: false,
@@ -403,6 +416,7 @@ export class KubernetesService {
                     },
                 })
                 .catch(async error => {
+                    console.log(error)
                     if (
                         attempt < maxAttempts &&
                         error.statusCode && error.statusCode != 404
