@@ -2,7 +2,7 @@ import {forwardRef, HttpStatus, Inject, Injectable} from '@nestjs/common';
 import {NamespaceDto} from '../dtos/namespace.dto';
 import {KubernetesService} from './kubernetes.service';
 import {Namespace, NamespaceDocument} from '../entitys/namespace';
-import {catchError, mergeMap} from 'rxjs/operators';
+import {catchError, map, mergeMap} from 'rxjs/operators';
 import {plainToClass} from 'class-transformer';
 import {StatusNamespaces} from '../classes/status.namespaces';
 import {ConfigService} from '@nestjs/config';
@@ -17,7 +17,9 @@ import {fromPromise} from 'rxjs/internal-compatibility';
 import {Model} from "mongoose";
 import {InjectModel} from "@nestjs/mongoose";
 import {FunctionsService} from "./functions.service";
-import {IkubeConfig, IResponse, IUser, NamespacesStatus, NamespacesSteps} from "@microfunctions/common";
+import {IkubeConfig, IPodMetrics, IResponse, IUser, NamespacesStatus, NamespacesSteps} from "@microfunctions/common";
+import {FunctionsDto} from "../dtos/functions.dto";
+import {Pod} from "../classes/pod";
 
 
 @Injectable()
@@ -183,6 +185,26 @@ export class NamespaceService {
     return response;
   }
 
+  public async getNamespaceMetrics(user: IUser, idNamespace: string,range:number) {
+
+
+    this.logger.debug('getNamespaceMetrics  ', {user, idNamespace});
+    const namespace: Namespace = await this.namespaceModel.findById(idNamespace).catch((error) => {
+      const response: IResponse = {
+        status: HttpStatus.CONFLICT,
+        message: error.message,
+      };
+      throw new MicroFunctionException(response);
+    });
+    return this.kubernetesService.getNamespaceMetrics(namespace.host.host, namespace.apiKey,namespace.idNamespace, range).pipe(
+        map((iPodMetrics: IPodMetrics) => {//TODO replace by INamespaceMetrics
+          return {
+            status: HttpStatus.OK,
+            data: iPodMetrics,
+          };
+        }),
+    )
+  }
   private updateStatus(id: string, statusNameSpaces: StatusNamespaces) {
     this.namespaceModel.updateOne({ _id: id }, { status: statusNameSpaces }).catch((error) => this.logger.error('updateStatus error', {
       idNamespace: id,
@@ -190,12 +212,6 @@ export class NamespaceService {
     }));
   }
 
-  private setIdDomaine(id: string, idDomain: string) {
-    this.namespaceModel.updateOne({ _id: id }, { 'domain.id': idDomain }).catch((error) => this.logger.error('updateStatus error', {
-      idNamespace: id,
-      error,
-    }));
-  }
 
   private generateApiKey() {
     const apiKey: string = uuid();

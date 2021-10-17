@@ -327,10 +327,8 @@ export class KubernetesService {
         const cpuRequests = `sum(kube_pod_container_resource_requests{pod=~"${podSelector}",resource="cpu",namespace="${namespace}"}) by (${selector})`;
         const cpuLimits = `sum(kube_pod_container_resource_limits{pod=~"${podSelector}",resource="cpu",namespace="${namespace}"}) by (${selector})`;
         const memoryUsage = `sum(container_memory_working_set_bytes{container!="POD",container!="",pod=~"${podSelector}",namespace="${namespace}"}) by (${selector})`;
-        const memoryRequests = `sum(kube_pod_container_resource_requests{app_kubernetes_io_name!="kube-state-metrics",pod=~"${podSelector}",container!="POD",container!="",resource="memory",namespace="${namespace}"}) by (${selector})`;
+        const memoryRequests = `sum(kube_pod_container_resource_requests{app_kubernetes_io_name!="kube-state-metrics",pod=~"${podSelector}",resource="memory",namespace="${namespace}"}) by (${selector})`;
         const memoryLimits = `sum(kube_pod_container_resource_limits{app_kubernetes_io_name!="kube-state-metrics",pod=~"${podSelector}",container!="POD",container!="",resource="memory",namespace="${namespace}"}) by (${selector})`;
-       // const bytesSentSuccess = bytesSent(`${namespace}.${functions}.00`, "2[0-9]{2}");
-       // const bytesSentFailure = bytesSent(`${namespace}.${functions}.00`, "5[0-9]{2}");
         const countSentSuccess = countSent(`${namespace}.${functions}.00`, "2[0-9]{2}");
         const countSentFailure = countSent(`${namespace}.${functions}.00`, "5[0-9]{2}");
         const requestTime= `histogram_quantile(0.99, sum(rate(kong_latency_bucket{type="request",route=~"${namespace}.${functions}.00"}[15m])) by (route,le))`;
@@ -356,6 +354,70 @@ export class KubernetesService {
             requestTime,
             countSentSuccess,
             countSentFailure
+        };
+        const path = `http://${baseUrl}/prometheus/api/v1/query_range`;
+
+        const query: URLSearchParams = new URLSearchParams(
+            stringify({
+                start,
+                end,
+                step,
+                // eslint-disable-next-line @typescript-eslint/camelcase
+                kubernetes_namespace: namespace,
+            }),
+        );
+        const headers = {
+            'Content-type': 'application/json',
+            'x-apikey-header': apiKey,
+        };
+        const request: ApiRequest = {
+            payload: metrics,
+            query: query,
+            path,
+            headers,
+        };
+
+        return from(this.getMetrics(request)).pipe(
+            map((response: any) => {
+                return response as IPodMetrics;
+            }),
+        );
+    }
+
+    public getNamespaceMetrics(
+        baseUrl: string,
+        apiKey: string,
+        namespace: string,
+        rangePrame: number,
+        selector = 'namespace',
+    ): Observable<IPodMetrics> {
+
+        const cpuUsage = `sum(rate(container_cpu_usage_seconds_total{container!="POD",container!="",namespace="${namespace}"}[2m])) by (${selector})`;
+        const cpuRequests = `sum(kube_pod_container_resource_requests{resource="cpu",namespace="${namespace}"}) by (${selector})`;
+        const cpuLimits = `sum(kube_pod_container_resource_limits{resource="cpu",namespace="${namespace}"}) by (${selector})`;
+        const memoryUsage = `sum(container_memory_working_set_bytes{container!="POD",container!="",namespace="${namespace}"}) by (${selector})`;
+        const memoryRequests = `sum(kube_pod_container_resource_requests{app_kubernetes_io_name!="kube-state-metrics",container!="POD",container!="",resource="memory",namespace="${namespace}"}) by (${selector})`;
+        const memoryLimits = `sum(kube_pod_container_resource_limits{app_kubernetes_io_name!="kube-state-metrics",container!="POD",container!="",resource="memory",namespace="${namespace}"}) by (${selector})`;
+
+        const reqParams: IMetricsReqParams = {};
+        const {range = rangePrame || 1,  step = 60} = reqParams;
+        let {start, end} = reqParams;
+        if (!start && !end) {
+            const timeNow = Date.now() / 1000;
+            const now = moment
+                .unix(timeNow)
+                .startOf('minute')
+                .unix(); // round date to minutes
+            start = now - range;
+            end = now;
+        }
+        const metrics: IMetricsQuery = {
+            cpuUsage,
+            cpuRequests,
+            cpuLimits,
+            memoryUsage,
+            memoryRequests,
+            memoryLimits
         };
         const path = `http://${baseUrl}/prometheus/api/v1/query_range`;
 
