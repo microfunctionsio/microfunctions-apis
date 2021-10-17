@@ -71,6 +71,11 @@ export class MicroFunctionController {
   getFunctionsMetrics(@GetUser() user: IUser, @Payload() functions: any) {
     return this.functionService.getFunctionMetrics(user, functions);
   }
+  @MessagePattern({ cmd: 'get-namespace-metrics' })
+  getNamespaceMetrics(@GetUser() user: IUser, @Payload() payload: any) {
+    return this.namespaceService.getNamespaceMetrics(user, payload.id,payload.range);
+  }
+
   @MessagePattern({ cmd: 'post-namespaces' })
   createNamespace(@Payload() namespace: NamespaceDto, @GetUser() user: IUser) {
     return this.namespaceService.createNamespace(user, namespace);
